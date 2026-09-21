@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="cs" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Asistent Balení</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        dark: { 900: '#0f172a', 800: '#1e293b', 700: '#334155', 600: '#475569' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        canvas { display: block; outline: none; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        .collapsible-content { 
+            transition: opacity 0.3s ease-in-out; 
+            overflow: visible !important; 
+            max-height: none !important;
+            padding: 0.875rem;
+            opacity: 1;
+        }
+        .collapsible-content.collapsed {
+            max-height: 0px !important;
+            padding-top: 0px !important;
+            padding-bottom: 0px !important;
+            padding-left: 0px !important;
+            padding-right: 0px !important;
+            opacity: 0;
+            overflow: hidden !important;
+            border: none !important;
+        }
+    </style>
+</head>
+<body class="bg-dark-900 text-slate-100 min-h-screen flex flex-col antialiased">
+
+    <header class="bg-dark-800 border-b border-slate-700/60 px-6 py-4 flex items-center justify-between shadow-lg">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-md shadow-indigo-500/30">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold tracking-tight text-white">3D Asistent Balení</h1>
+                <p class="text-xs text-slate-400">Efektivní výpočet a zobrazení balení zboží</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        
+        <div id="sidebar" class="w-full lg:w-[480px] lg:min-w-[320px] lg:max-w-[800px] bg-dark-800 border-r border-slate-700/60 flex flex-col h-auto lg:h-[calc(100vh-73px)] overflow-y-auto p-5 pb-48 space-y-4 select-none">
+            
+            <div class="bg-dark-900/40 rounded-xl border border-slate-700/50 shadow-sm">
+                <button onclick="toggleSection('secEnv')" class="w-full p-3.5 flex items-center justify-between text-left hover:bg-dark-900/60 transition rounded-t-xl">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-indigo-400">1. Konfigurace prostředí a země</span>
+                    <svg id="icon_secEnv" class="w-4 h-4 text-slate-400 transform transition-transform duration-200 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <div id="secEnv" class="collapsible-content space-y-3 pb-4">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[11px] text-slate-400 mb-1 block">Prostředí</label>
+                            <select id="envSelect" class="w-full bg-dark-900 border border-slate-700 rounded-lg px-2.5 py-2 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="ambi">Ambi</option>
+                                <option value="cool" selected>Cool</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[11px] text-slate-400 mb-1 block">Prodejní země</label>
+                            <select id="countrySelect" class="w-full bg-dark-900 border border-slate-700 rounded-lg px-2.5 py-2 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="DK">DK (Dánsko)</option>
+                                <option value="DE" selected>DE (Německo)</option>
+                                <option value="SE">SE (Švédsko)</option>
+                                <option value="FI">FI (Finsko)</option>
+                                <option value="AT">AT (Rakousko)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-dark-900/40 rounded-xl border border-slate-700/50 shadow-sm">
+                <button onclick="toggleSection('secBox')" class="w-full p-3.5 flex items-center justify-between text-left hover:bg-dark-900/60 transition rounded-t-xl">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-indigo-400">2. Velikost přepravky</span>
+                    <svg id="icon_secBox" class="w-4 h-4 text-slate-400 transform transition-transform duration-200 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <div id="secBox" class="collapsible-content space-y-3 pb-4">
+                    <select id="euroboxType" class="w-full bg-dark-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                        <!-- Dynamically populated -->
+                    </select>
+                    
+                    <div id="customEuroboxContainer" class="hidden grid grid-cols-3 gap-2 pt-2">
+                        <div>
+                            <label class="text-[11px] text-slate-400">Šířka (cm)</label>
+                            <input type="number" id="boxW" value="30" min="5" class="w-full bg-dark-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label class="text-[11px] text-slate-400">Délka (cm)</label>
+                            <input type="number" id="boxL" value="40" min="5" class="w-full bg-dark-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label class="text-[11px] text-slate-400">Výška (cm)</label>
+                            <input type="number" id="boxH" value="15" min="5" class="w-full bg-dark-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                    </div>
+                    <div id="euroboxInfo" class="text-xs text-slate-400 bg-dark-900/60 p-2.5 rounded-lg border border-slate-700/50">
+                        Vnitřní rozměry: Šířka 30 cm, Délka 40 cm, Výška 15 cm
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-dark-900/40 rounded-xl border border-slate-700/50 shadow-sm">
+                <button onclick="toggleSection('secItem')" class="w-full p-3.5 flex items-center justify-between text-left hover:bg-dark-900/60 transition rounded-t-xl">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-indigo-400">3. Zadejte rozměry a množství</span>
+                    <svg id="icon_secItem" class="w-4 h-4 text-slate-400 transform transition-transform duration-200 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <div id="secItem" class="collapsible-content space-y-3 pb-4">
+                    <div class="grid grid-cols-3 gap-2">
+                        <div>
+                            <label class="text-[11px] text-slate-400">Šířka (cm)</label>
+                            <input type="number" id="itemW" value="3" min="1" class="w-full bg-dark-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label class="text-[11px] text-slate-400">Délka (cm)</label>
+                            <input type="number" id="itemL" value="11" min="1" class="w-full bg-dark-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label class="text-[11px] text-slate-400">Výška (cm)</label>
+                            <input type="number" id="itemH" value="2" min="1" class="w-full bg-dark-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-[11px] text-slate-400 mb-1 block">Požadovaný počet krabiček (0 = max)</label>
+                        <input type="number" id="targetCount" value="0" min="0" class="w-full bg-dark-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+
+                    <!-- Bundle Switch -->
+                    <div class="pt-1 space-y-2">
+                        <div class="flex items-center justify-between bg-dark-900/60 p-3 rounded-xl border border-slate-700/60">
+                            <div>
+                                <span class="text-xs font-medium text-slate-200 block">Páskování / Bundle</span>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="bundleCheck" class="sr-only peer">
+                                <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </label>
+                        </div>
+                        <div id="bundleSizeContainer" class="hidden flex items-center justify-between bg-dark-900/40 p-2.5 rounded-lg border border-slate-700/50">
+                            <span class="text-xs text-slate-300">Počet kusů v bundlu:</span>
+                            <input type="number" id="bundleSizeInput" value="5" min="2" max="100" class="w-20 bg-dark-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                    </div>
+
+                    <!-- Master Orientation Switches -->
+                    <div class="pt-2">
+                        <label class="text-xs font-semibold uppercase tracking-wider text-indigo-400 mb-2 block">Povolit orientace</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div class="bg-dark-900/60 p-2.5 rounded-xl border border-slate-700/50 flex flex-col items-center justify-center space-y-2 text-center">
+                                <span class="text-[12px] font-medium text-slate-200">Na výšku</span>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="orient_vyska" checked class="sr-only peer">
+                                    <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </div>
+                            <div class="bg-dark-900/60 p-2.5 rounded-xl border border-slate-700/50 flex flex-col items-center justify-center space-y-2 text-center">
+                                <span class="text-[12px] font-medium text-slate-200">Na bok</span>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="orient_bok" checked class="sr-only peer">
+                                    <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </div>
+                            <div class="bg-dark-900/60 p-2.5 rounded-xl border border-slate-700/50 flex flex-col items-center justify-center space-y-2 text-center">
+                                <span class="text-[12px] font-medium text-slate-200">Na ležato</span>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="orient_lezato" checked class="sr-only peer">
+                                    <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-dark-900/40 rounded-xl border border-slate-700/50 shadow-sm">
+                <button onclick="toggleSection('secResults')" class="w-full p-3.5 flex items-center justify-between text-left hover:bg-dark-900/60 transition rounded-t-xl">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-indigo-400">Výsledek balení</span>
+                    <svg id="icon_secResults" class="w-4 h-4 text-slate-400 transform transition-transform duration-200 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <div id="secResults" class="collapsible-content space-y-3 pb-6">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-dark-900 p-3.5 rounded-xl border border-slate-700/60">
+                            <span id="totalBoxesLabel" class="text-[11px] text-slate-400 block mb-1">Celkem ks / bedna</span>
+                            <span id="totalBoxes" class="text-2xl font-bold text-white">0</span>
+                        </div>
+                        <div class="bg-dark-900 p-3.5 rounded-xl border border-slate-700/60">
+                            <span class="text-[11px] text-slate-400 block mb-1">Využití prostoru</span>
+                            <span id="utilizationPct" class="text-2xl font-bold text-emerald-400">0.0%</span>
+                        </div>
+                    </div>
+
+                    <!-- Enhanced Readable Results Info Box with swapped order -->
+                    <div class="bg-dark-900 p-4 rounded-xl border border-slate-700/60 text-sm space-y-4 shadow-inner">
+                        <div id="multiBoxInfo" class="hidden space-y-2 text-amber-200 text-xs font-medium leading-relaxed bg-amber-950/20 p-3 rounded-lg border border-amber-500/20">
+                            <!-- Multi-box calculation info -->
+                        </div>
+                        <div class="space-y-1.5 pt-0.5">
+                            <span class="text-indigo-300 font-semibold uppercase tracking-wider text-xs block mb-1">Aktivní zóny:</span>
+                            <div id="zoneBreakdown" class="space-y-1.5 text-slate-200 text-xs leading-relaxed">
+                                <div>• Žádné aktivní zóny</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div id="splitter" class="hidden lg:flex w-1.5 bg-slate-700/40 hover:bg-indigo-500 cursor-col-resize items-center justify-center transition group z-20">
+            <div class="w-0.5 h-8 bg-slate-500 rounded-full group-hover:bg-white transition"></div>
+        </div>
+
+        <div class="flex-1 relative bg-dark-900 flex flex-col h-[500px] lg:h-auto overflow-hidden">
+            
+            <div class="absolute top-4 left-4 z-10 flex items-center space-x-2">
+                <button id="resetCamBtn" class="bg-dark-800/90 backdrop-blur border border-slate-700 text-xs px-3 py-2 rounded-xl text-slate-200 hover:bg-slate-700 transition flex items-center space-x-1.5 shadow-md">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                    <span>Výchozí pohled</span>
+                </button>
+            </div>
+
+            <div class="absolute top-4 right-4 z-10 bg-dark-800/90 backdrop-blur border border-slate-700 px-5 py-2.5 rounded-2xl shadow-xl flex items-center space-x-3">
+                <button onclick="prevVariant()" class="p-1.5 hover:bg-slate-700 rounded-xl text-slate-300 hover:text-white transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                </button>
+                <div class="text-center">
+                    <div id="hudVariantTitle" class="text-sm font-bold text-white tracking-wide">Varianta 1 / 6</div>
+                    <div id="hudVariantStats" class="text-xs font-medium text-indigo-400">0 ks • 0.0%</div>
+                </div>
+                <button onclick="nextVariant()" class="p-1.5 hover:bg-slate-700 rounded-xl text-slate-300 hover:text-white transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </button>
+            </div>
+
+            <div id="legendContainer" class="absolute bottom-4 left-4 z-10 bg-dark-800/90 backdrop-blur border border-slate-700 px-4 py-2.5 rounded-xl shadow-lg flex flex-wrap items-center gap-3 text-xs max-w-xl">
+                <!-- Dynamically populated -->
+            </div>
+
+            <div id="canvasContainer" class="flex-1 w-full h-full"></div>
+        </div>
+
+    </main>
+
+    <script>
+        function toggleSection(id) {
+            const el = document.getElementById(id);
+            const icon = document.getElementById('icon_' + id);
+            if (!el) return;
+            
+            if (el.classList.contains('collapsed')) {
+                el.classList.remove('collapsed');
+                if (icon) icon.classList.add('rotate-180');
+            } else {
+                el.classList.add('collapsed');
+                if (icon) icon.classList.remove('rotate-180');
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const openSections = ['secEnv', 'secBox', 'secItem', 'secResults'];
+            openSections.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.remove('collapsed');
+            });
+        });
+
+        let scene, camera, renderer, controls;
+        let boxGroup = new THREE.Group();
+        let euroboxMesh, euroboxWireframe;
+        let isWireframeTransparent = true;
+
+        const container = document.getElementById('canvasContainer');
+
+        let computedNoBundleVariants = [];
+        let computedBundleVariants = [];
+        let selectedVariantTab = 'nobundle';
+        let selectedVariantIndex = 0;
+
+        function initThree() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0f172a);
+
+            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(60, 50, 70);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(50, 80, 50);
+            scene.add(dirLight);
+
+            const dirLight2 = new THREE.DirectionalLight(0x94a3b8, 0.4);
+            dirLight2.position.set(-50, -30, -50);
+            scene.add(dirLight2);
+
+            const gridHelper = new THREE.GridHelper(100, 20, 0x334155, 0x1e293b);
+            gridHelper.position.y = -0.05;
+            scene.add(gridHelper);
+
+            scene.add(boxGroup);
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function onWindowResize() {
+            if (!container) return;
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        function resolveDims(w, l, h, code) {
+            const dims = [w, l, h].sort((a, b) => b - a);
+            const max = dims[0], mid = dims[1], min = dims[2];
+
+            if (code === 'vyska') {
+                return { dw: mid, dl: min, dh: max, label: 'Na výšku (0°)' };
+            } else if (code === 'vyska_90') {
+                return { dw: min, dl: mid, dh: max, label: 'Na výšku (90°)' };
+            } else if (code === 'bok') {
+                return { dw: max, dl: min, dh: mid, label: 'Na bok (0°)' };
+            } else if (code === 'bok_90') {
+                return { dw: min, dl: max, dh: mid, label: 'Na bok (90°)' };
+            } else if (code === 'lezato') {
+                return { dw: max, dl: mid, dh: min, label: 'Na ležato (0°)' };
+            } else if (code === 'lezato_90') {
+                return { dw: mid, dl: max, dh: min, label: 'Na ležato (90°)' };
+            }
+            return { dw: mid, dl: min, dh: max, label: 'Na výšku' };
+        }
+
+        function packSubSpaceLimited(spaceW, spaceL, spaceH, itemW, itemL, itemH, orientCode, maxItems, isBundled, bundleSize) {
+            const d = resolveDims(itemW, itemL, itemH, orientCode);
+            const iw = d.dw, il = d.dl, ih = d.dh;
+
+            if (iw > spaceW || il > spaceL || ih > spaceH || maxItems < (isBundled ? bundleSize : 1)) {
+                return { count: 0, boxes: [], bundles: [], dims: d, usedW: 0, usedL: 0, usedH: 0, bundleCount: 0 };
+            }
+
+            if (isBundled) {
+                let thicknessAxis = 'Z';
+                if (iw <= il && iw <= ih) thicknessAxis = 'X';
+                else if (il <= iw && il <= ih) thicknessAxis = 'Y';
+
+                const bw = (thicknessAxis === 'X') ? bundleSize * iw : iw;
+                const bl = (thicknessAxis === 'Y') ? bundleSize * il : il;
+                const bh = (thicknessAxis === 'Z') ? bundleSize * ih : ih;
+
+                if (bw > spaceW || bl > spaceL || bh > spaceH) {
+                    return { count: 0, boxes: [], bundles: [], dims: d, usedW: 0, usedL: 0, usedH: 0, bundleCount: 0 };
+                }
+
+                const maxNx = Math.floor(spaceW / bw);
+                const maxNy = Math.floor(spaceL / bl);
+                const maxNz = Math.floor(spaceH / bh);
+
+                let bBoxes = [];
+                let bundleBoxes = [];
+                let bCount = 0;
+                let maxUsedW = 0, maxUsedL = 0, maxUsedH = 0;
+                const maxBundlesCount = Math.floor(maxItems / bundleSize);
+
+                outerBundle: for (let z = 0; z < maxNz; z++) {
+                    for (let y = 0; y < maxNy; y++) {
+                        for (let x = 0; x < maxNx; x++) {
+                            if (bCount >= maxBundlesCount) break outerBundle;
+
+                            const bx = x * bw;
+                            const by = y * bl;
+                            const bz = z * bh;
+
+                            bundleBoxes.push({ x: bx, y: by, z: bz, w: bw, l: bl, h: bh });
+
+                            for (let i = 0; i < bundleSize; i++) {
+                                let ix = bx, iy = by, iz = bz;
+                                if (thicknessAxis === 'X') ix += i * iw;
+                                else if (thicknessAxis === 'Y') iy += i * il;
+                                else if (thicknessAxis === 'Z') iz += i * ih;
+
+                                bBoxes.push({ x: ix, y: iy, z: iz, w: iw, l: il, h: ih });
+                            }
+
+                            bCount++;
+                            maxUsedW = Math.max(maxUsedW, bx + bw);
+                            maxUsedL = Math.max(maxUsedL, by + bl);
+                            maxUsedH = Math.max(maxUsedH, bz + bh);
+                        }
+                    }
+                }
+
+                if (bCount > 0) {
+                    return {
+                        count: bCount * bundleSize,
+                        boxes: bBoxes,
+                        bundles: bundleBoxes,
+                        dims: d,
+                        usedW: maxUsedW,
+                        usedL: maxUsedL,
+                        usedH: maxUsedH,
+                        bundleCount: bCount
+                    };
+                }
+                return { count: 0, boxes: [], bundles: [], dims: d, usedW: 0, usedL: 0, usedH: 0, bundleCount: 0 };
+
+            } else {
+                const maxNx = Math.floor(spaceW / iw);
+                const maxNy = Math.floor(spaceL / il);
+                const maxNz = Math.floor(spaceH / ih);
+
+                let boxes = [];
+                let count = 0;
+                let maxUsedW = 0, maxUsedL = 0, maxUsedH = 0;
+
+                outer: for (let z = 0; z < maxNz; z++) {
+                    for (let y = 0; y < maxNy; y++) {
+                        for (let x = 0; x < maxNx; x++) {
+                            if (count >= maxItems) break outer;
+                            boxes.push({
+                                x: x * iw,
+                                y: y * il,
+                                z: z * ih,
+                                w: iw,
+                                l: il,
+                                h: ih
+                            });
+                            count++;
+                            maxUsedW = Math.max(maxUsedW, (x + 1) * iw);
+                            maxUsedL = Math.max(maxUsedL, (y + 1) * il);
+                            maxUsedH = Math.max(maxUsedH, (z + 1) * ih);
+                        }
+                    }
+                }
+
+                return {
+                    count,
+                    boxes,
+                    bundles: [],
+                    dims: d,
+                    usedW: maxUsedW,
+                    usedL: maxUsedL,
+                    usedH: maxUsedH,
+                    bundleCount: 0
+                };
+            }
+        }
+
+        function evaluateSubCodesPermutation(boxW, boxL, boxH, itemW, itemL, itemH, subCodesPerm, targetCount, isBundled, bundleSize) {
+            let remainders = [{ x: 0, y: 0, z: 0, w: boxW, l: boxL, h: boxH }];
+            let rawZones = [];
+            let totalBoxesCount = 0;
+            let remainingTarget = (targetCount > 0) ? targetCount : Infinity;
+            const minItemsPerPack = isBundled ? bundleSize : 1;
+
+            for (let sIdx = 0; sIdx < subCodesPerm.length; sIdx++) {
+                if (remainders.length === 0 || remainingTarget < minItemsPerPack) break;
+
+                remainders.sort((a, b) => (b.w * b.l * b.h) - (a.w * a.l * a.h));
+                const subCode = subCodesPerm[sIdx];
+
+                for (let rIdx = 0; rIdx < remainders.length; rIdx++) {
+                    if (remainingTarget < minItemsPerPack) break;
+                    const rem = remainders[rIdx];
+                    const sub = packSubSpaceLimited(rem.w, rem.l, rem.h, itemW, itemL, itemH, subCode, remainingTarget, isBundled, bundleSize);
+
+                    if (sub.count > 0) {
+                        remainders.splice(rIdx, 1);
+                        const s = sub;
+
+                        const worldBoxes = sub.boxes.map(b => ({
+                            x: b.x + rem.x,
+                            y: b.y + rem.y,
+                            z: b.z + rem.z,
+                            w: b.w, l: b.l, h: b.h
+                        }));
+
+                        const worldBundles = (sub.bundles || []).map(b => ({
+                            x: b.x + rem.x,
+                            y: b.y + rem.y,
+                            z: b.z + rem.z,
+                            w: b.w, l: b.l, h: b.h
+                        }));
+
+                        rawZones.push({
+                            count: sub.count,
+                            bundleCount: sub.bundleCount,
+                            boxes: worldBoxes,
+                            bundles: worldBundles,
+                            dims: sub.dims,
+                            orientCode: subCode
+                        });
+                        totalBoxesCount += sub.count;
+                        remainingTarget -= sub.count;
+
+                        if (rem.w - s.usedW > 0) {
+                            remainders.push({ x: rem.x + s.usedW, y: rem.y, z: rem.z, w: rem.w - s.usedW, l: rem.l, h: rem.h });
+                        }
+                        if (rem.l - s.usedL > 0) {
+                            remainders.push({ x: rem.x, y: rem.y + s.usedL, z: rem.z, w: s.usedW, l: rem.l - s.usedL, h: rem.h });
+                        }
+                        if (rem.h - s.usedH > 0) {
+                            remainders.push({ x: rem.x, y: rem.y, z: rem.z + s.usedH, w: s.usedW, l: s.usedL, h: rem.h - s.usedH });
+                        }
+                        break;
+                    }
+                }
+            }
+
+            let zoneMap = new Map();
+            for (let z of rawZones) {
+                if (!zoneMap.has(z.orientCode)) {
+                    zoneMap.set(z.orientCode, {
+                        count: 0,
+                        bundleCount: 0,
+                        boxes: [],
+                        bundles: [],
+                        dims: z.dims,
+                        orientCode: z.orientCode
+                    });
+                }
+                let merged = zoneMap.get(z.orientCode);
+                merged.count += z.count;
+                merged.bundleCount += (z.bundleCount || 0);
+                merged.boxes.push(...z.boxes);
+                merged.bundles.push(...(z.bundles || []));
+            }
+
+            let activeZones = Array.from(zoneMap.values());
+            let maxH = 0;
+            activeZones.forEach(z => {
+                z.boxes.forEach(b => {
+                    if (b.z + b.h > maxH) maxH = b.z + b.h;
+                });
+            });
+
+            return { total: totalBoxesCount, zones: activeZones, usedHeight: maxH, isBundled: isBundled, bundleSize: bundleSize };
+        }
+
+        function permute(arr) {
+            if (arr.length <= 1) return [arr];
+            let result = [];
+            for (let i = 0; i < arr.length; i++) {
+                let current = arr[i];
+                let remaining = arr.slice(0, i).concat(arr.slice(i + 1));
+                let remainingPerms = permute(remaining);
+                for (let p of remainingPerms) {
+                    result.push([current].concat(p));
+                }
+            }
+            return result;
+        }
+
+        function generateVariantsForMode(boxW, boxL, boxH, itemW, itemL, itemH, targetCount, activeMasterCats, isBundled, bundleSize) {
+            const categorySubCodes = {
+                'vyska': ['vyska', 'vyska_90'],
+                'bok': ['bok', 'bok_90'],
+                'lezato': ['lezato', 'lezato_90']
+            };
+
+            let allowedSubCodes = [];
+            activeMasterCats.forEach(cat => {
+                if (categorySubCodes[cat]) {
+                    allowedSubCodes.push(...categorySubCodes[cat]);
+                }
+            });
+
+            if (allowedSubCodes.length === 0) return [];
+
+            const perms = permute(allowedSubCodes);
+            let resultsMap = new Map();
+
+            perms.forEach(subCodesPerm => {
+                const res = evaluateSubCodesPermutation(boxW, boxL, boxH, itemW, itemL, itemH, subCodesPerm, targetCount, isBundled, bundleSize);
+                if (res.total > 0) {
+                    const sig = res.zones.map(z => `${z.orientCode}:${z.count}`).sort().join('|');
+                    if (!resultsMap.has(sig)) {
+                        const itemVol = itemW * itemL * itemH;
+                        const totalVol = boxW * boxL * boxH;
+                        const packedVol = res.total * itemVol;
+                        const utilization = Math.min(100, (packedVol / totalVol) * 100);
+
+                        resultsMap.set(sig, {
+                            total: res.total,
+                            utilization: utilization,
+                            usedHeight: res.usedHeight,
+                            zones: res.zones,
+                            subCodesPerm: subCodesPerm
+                        });
+                    }
+                }
+            });
+
+            let variants = Array.from(resultsMap.values());
+            variants.sort((a, b) => {
+                if (b.total !== a.total) return b.total - a.total;
+                return b.utilization - a.utilization;
+            });
+
+            return variants.slice(0, 6);
+        }
+
+        const ZONE_COLORS = [0x6366f1, 0xec4899, 0xf59e0b, 0x10b981, 0x06b6d4, 0xa855f7];
+        const ZONE_MATERIALS = ZONE_COLORS.map(c => new THREE.MeshLambertMaterial({ color: c, transparent: true, opacity: 0.9 }));
+
+        const BOX_PRESETS = {
+            'ambi_nordic': [
+                { id: 'large_carton', name: 'Velká kartonová krabice', w: 40, l: 40, h: 40 },
+                { id: 'small_carton', name: 'Malá kartonová krabice', w: 20, l: 40, h: 20 }
+            ],
+            'ambi_de': [
+                { id: 'lid_small', name: 'Krabice s víkem malá', w: 20, l: 25, h: 25 },
+                { id: 'lid_medium', name: 'Krabice s víkem střední', w: 25, l: 30, h: 25 },
+                { id: 'lid_large', name: 'Krabice s víkem velká', w: 34, l: 45, h: 25 }
+            ],
+            'ambi_at': [
+                { id: 'green_small', name: 'Zelená plastová bedna malá', w: 15, l: 20, h: 15 },
+                { id: 'green_medium', name: 'Zelená plastová bedna střední', w: 30, l: 40, h: 15 },
+                { id: 'green_large', name: 'Zelená plastová bedna velká', w: 30, l: 40, h: 30 }
+            ],
+            'cool_nordic': [
+                { id: 'white_carton', name: 'Bílá kartonová krabice', w: 25, l: 40, h: 25 }
+            ],
+            'cool_de_at': [
+                { id: 'green_small', name: 'Zelená plastová bedna malá', w: 15, l: 20, h: 15 },
+                { id: 'green_medium', name: 'Zelená plastová bedna střední', w: 30, l: 40, h: 15 },
+                { id: 'green_large', name: 'Zelená plastová bedna velká', w: 30, l: 40, h: 30 }
+            ]
+        };
+
+        let currentPresetsList = [];
+
+        function getActivePresetKey() {
+            const env = document.getElementById('envSelect').value;
+            const country = document.getElementById('countrySelect').value;
+
+            if (env === 'ambi') {
+                if (['DK', 'SE', 'FI'].includes(country)) return 'ambi_nordic';
+                if (country === 'DE') return 'ambi_de';
+                if (country === 'AT') return 'ambi_at';
+            } else if (env === 'cool') {
+                if (['DK', 'SE', 'FI'].includes(country)) return 'cool_nordic';
+                if (['DE', 'AT'].includes(country)) return 'cool_de_at';
+            }
+            return 'ambi_nordic';
+        }
+
+        function updateEuroboxDropdown() {
+            const select = document.getElementById('euroboxType');
+            const key = getActivePresetKey();
+            currentPresetsList = BOX_PRESETS[key] || [];
+
+            let html = '';
+            currentPresetsList.forEach((p, idx) => {
+                const isDefault = (key === 'cool_de_at' && idx === 1) ? 'selected' : (idx === 0 ? 'selected' : '');
+                html += `<option value="${idx}" ${isDefault}>${p.name}</option>`;
+            });
+            html += `<option value="custom">Vlastní rozměry...</option>`;
+            select.innerHTML = html;
+
+            handleEuroboxChange();
+        }
+
+        function updateScene(result, boxW, boxL, boxH, isBundled, bundleSize) {
+            while (boxGroup.children.length > 0) {
+                const obj = boxGroup.children[0];
+                boxGroup.remove(obj);
+                if (obj.geometry) obj.geometry.dispose();
+                if (obj.material) obj.material.dispose();
+            }
+
+            if (euroboxMesh) scene.remove(euroboxMesh);
+            if (euroboxWireframe) scene.remove(euroboxWireframe);
+
+            const boxGeo = new THREE.BoxGeometry(boxW, boxH, boxL);
+            boxGeo.translate(boxW / 2, boxH / 2, boxL / 2);
+
+            const wireMat = new THREE.MeshBasicMaterial({
+                color: 0x64748b,
+                wireframe: true,
+                transparent: true,
+                opacity: isWireframeTransparent ? 0.35 : 0.8
+            });
+            euroboxWireframe = new THREE.Mesh(boxGeo, wireMat);
+            scene.add(euroboxWireframe);
+
+            if (!result || !result.zones) {
+                controls.target.set(boxW / 2, boxH / 2, boxL / 2);
+                controls.update();
+                return;
+            }
+
+            const boxGeomTemplate = new THREE.BoxGeometry(1, 1, 1);
+            const edgeGeomTemplate = new THREE.EdgesGeometry(boxGeomTemplate);
+            const edgeMat = new THREE.LineBasicMaterial({ color: 0x0f172a, linewidth: 1, transparent: true, opacity: 0.3 });
+            const bundleEdgeMat = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 3, transparent: true, opacity: 1.0 });
+
+            for (let zIdx = 0; zIdx < result.zones.length; zIdx++) {
+                const zone = result.zones[zIdx];
+                const mat = ZONE_MATERIALS[zIdx % ZONE_MATERIALS.length];
+                const boxes = zone.boxes;
+
+                for (let i = 0; i < boxes.length; i++) {
+                    const b = boxes[i];
+                    const mesh = new THREE.Mesh(boxGeomTemplate, mat);
+                    mesh.scale.set(b.w - 0.1, b.h - 0.1, b.l - 0.1);
+                    mesh.position.set(b.x + b.w / 2, b.z + b.h / 2, b.y + b.l / 2);
+                    
+                    const edges = new THREE.LineSegments(edgeGeomTemplate, edgeMat);
+                    mesh.add(edges);
+
+                    boxGroup.add(mesh);
+                }
+
+                if (isBundled && zone.bundles && zone.bundles.length > 0) {
+                    for (let bIdx = 0; bIdx < zone.bundles.length; bIdx++) {
+                        const bun = zone.bundles[bIdx];
+                        const bunGeo = new THREE.BoxGeometry(bun.w, bun.h, bun.l);
+                        bunGeo.translate(bun.w / 2, bun.h / 2, bun.l / 2);
+                        const bunEdgesGeo = new THREE.EdgesGeometry(bunGeo);
+                        const bunOutline = new THREE.LineSegments(bunEdgesGeo, bundleEdgeMat);
+                        bunOutline.position.set(bun.x, bun.z, bun.y);
+                        boxGroup.add(bunOutline);
+                    }
+                }
+            }
+
+            controls.target.set(boxW / 2, boxH / 2, boxL / 2);
+            controls.update();
+        }
+
+        function updateLegend(numZones, hasBundles, bundleSize) {
+            const legend = document.getElementById('legendContainer');
+            let html = '';
+            const names = ['Zóna 1', 'Zóna 2', 'Zóna 3', 'Zóna 4', 'Zóna 5', 'Zóna 6'];
+            const hexColors = ['bg-indigo-500', 'bg-pink-500', 'bg-amber-500', 'bg-emerald-500', 'bg-cyan-500', 'bg-purple-500'];
+
+            for (let i = 0; i < numZones; i++) {
+                html += `<div class="flex items-center space-x-1.5"><span class="w-3 h-3 rounded-md ${hexColors[i % hexColors.length]} inline-block"></span><span class="text-slate-300 font-medium">${names[i]}</span></div>`;
+            }
+            if (hasBundles) {
+                html += `<div class="flex items-center space-x-1.5 border-l border-slate-700 pl-3"><span class="w-3 h-3 rounded-md border-2 border-black bg-slate-300 inline-block"></span><span class="text-slate-200 font-medium">Balíček (${bundleSize} ks)</span></div>`;
+            }
+            html += `<div class="flex items-center space-x-1.5 border-l border-slate-700 pl-3"><span class="w-3 h-3 rounded-md border border-slate-400 inline-block"></span><span class="text-slate-400">Přepravka</span></div>`;
+            legend.innerHTML = html;
+        }
+
+        function updateVariantHUD() {
+            const activeList = (selectedVariantTab === 'nobundle') ? computedNoBundleVariants : computedBundleVariants;
+            const titleEl = document.getElementById('hudVariantTitle');
+            const statsEl = document.getElementById('hudVariantStats');
+
+            if (!activeList || activeList.length === 0) {
+                titleEl.innerText = 'Žádná varianta';
+                statsEl.innerText = '0 ks • 0.0%';
+                return;
+            }
+
+            if (selectedVariantIndex >= activeList.length) selectedVariantIndex = 0;
+            const v = activeList[selectedVariantIndex];
+
+            titleEl.innerText = `Varianta ${selectedVariantIndex + 1} / ${activeList.length}`;
+            statsEl.innerText = `${v.total} ks • ${v.utilization.toFixed(1)}%`;
+        }
+
+        window.nextVariant = function() {
+            const activeList = (selectedVariantTab === 'nobundle') ? computedNoBundleVariants : computedBundleVariants;
+            if (!activeList || activeList.length === 0) return;
+            selectedVariantIndex = (selectedVariantIndex + 1) % activeList.length;
+            updateVariantHUD();
+            displayActiveVariant();
+        };
+
+        window.prevVariant = function() {
+            const activeList = (selectedVariantTab === 'nobundle') ? computedNoBundleVariants : computedBundleVariants;
+            if (!activeList || activeList.length === 0) return;
+            selectedVariantIndex = (selectedVariantIndex - 1 + activeList.length) % activeList.length;
+            updateVariantHUD();
+            displayActiveVariant();
+        };
+
+        function handleEuroboxChange() {
+            const val = document.getElementById('euroboxType').value;
+            const customDiv = document.getElementById('customEuroboxContainer');
+            const infoDiv = document.getElementById('euroboxInfo');
+
+            if (val === 'custom') {
+                customDiv.classList.remove('hidden');
+                infoDiv.classList.add('hidden');
+            } else {
+                customDiv.classList.add('hidden');
+                infoDiv.classList.remove('hidden');
+                const p = currentPresetsList[parseInt(val)];
+                if (p) {
+                    document.getElementById('boxW').value = p.w;
+                    document.getElementById('boxL').value = p.l;
+                    document.getElementById('boxH').value = p.h;
+                    infoDiv.innerText = `Vnitřní rozměry: Šířka ${p.w} cm, Délka ${p.l} cm, Výška ${p.h} cm`;
+                }
+            }
+            runOptimizationAndRender();
+        }
+
+        function displayActiveVariant() {
+            const boxW = parseFloat(document.getElementById('boxW').value) || 30;
+            const boxL = parseFloat(document.getElementById('boxL').value) || 40;
+            const boxH = parseFloat(document.getElementById('boxH').value) || 15;
+            const targetCount = parseInt(document.getElementById('targetCount').value) || 0;
+            const isBundled = document.getElementById('bundleCheck').checked;
+            const bundleSize = parseInt(document.getElementById('bundleSizeInput').value) || 5;
+
+            const itemW = parseFloat(document.getElementById('itemW').value) || 1;
+            const itemL = parseFloat(document.getElementById('itemL').value) || 1;
+            const itemH = parseFloat(document.getElementById('itemH').value) || 1;
+
+            const activeMasterCats = [];
+            if (document.getElementById('orient_vyska').checked) activeMasterCats.push('vyska');
+            if (document.getElementById('orient_bok').checked) activeMasterCats.push('bok');
+            if (document.getElementById('orient_lezato').checked) activeMasterCats.push('lezato');
+
+            const activeList = (selectedVariantTab === 'nobundle') ? computedNoBundleVariants : computedBundleVariants;
+            if (!activeList || activeList.length === 0 || selectedVariantIndex >= activeList.length) {
+                document.getElementById('totalBoxes').innerText = '0';
+                document.getElementById('utilizationPct').innerText = '0.0%';
+                document.getElementById('zoneBreakdown').innerHTML = '<div>• Žádné krabičky se nevejdou</div>';
+                document.getElementById('multiBoxInfo').classList.add('hidden');
+                updateScene(null, boxW, boxL, boxH, isBundled, bundleSize);
+                updateLegend(0, isBundled, bundleSize);
+                return;
+            }
+
+            const variant = activeList[selectedVariantIndex];
+            
+            document.getElementById('totalBoxes').innerText = variant.total;
+            document.getElementById('utilizationPct').innerText = variant.utilization.toFixed(1) + '%';
+
+            let breakdownHTML = '';
+            variant.zones.forEach((z, i) => {
+                const lbl = z && z.dims && z.dims.label ? z.dims.label : '-';
+                if (isBundled && z.bundleCount !== undefined && z.bundleCount > 0) {
+                    const looseCount = z.count - (z.bundleCount * bundleSize);
+                    if (looseCount > 0) {
+                        breakdownHTML += `<div>• Zóna ${i+1}: <strong class="text-white">${z.count} ks</strong> (${z.bundleCount} balíčků po ${bundleSize} ks + ${looseCount} volných, ${lbl})</div>`;
+                    } else {
+                        breakdownHTML += `<div>• Zóna ${i+1}: <strong class="text-white">${z.count} ks</strong> (${z.bundleCount} balíčků po ${bundleSize} ks, ${lbl})</div>`;
+                    }
+                } else {
+                    breakdownHTML += `<div>• Zóna ${i+1}: <strong class="text-white">${z.count} ks</strong> (${lbl})</div>`;
+                }
+            });
+
+            document.getElementById('zoneBreakdown').innerHTML = breakdownHTML;
+
+            const multiBoxInfo = document.getElementById('multiBoxInfo');
+            const totalBoxesLabel = document.getElementById('totalBoxesLabel');
+            if (targetCount > 0) {
+                totalBoxesLabel.innerText = `Celkem ks / bedna (cíl: ${targetCount})`;
+                const perBoxMax = variant.total;
+                if (perBoxMax > 0) {
+                    const neededBoxes = Math.ceil(targetCount / perBoxMax);
+                    const lastBoxCount = targetCount % perBoxMax === 0 ? perBoxMax : targetCount % perBoxMax;
+                    const selectedPresetName = document.getElementById('euroboxType').value === 'custom' ? 'Vlastní bedna' : (currentPresetsList[parseInt(document.getElementById('euroboxType').value)]?.name || 'Zvolená bedna');
+                    
+                    let lastBoxName = selectedPresetName;
+                    if (lastBoxCount < perBoxMax) {
+                        let validPresets = [...currentPresetsList].map((p) => ({ ...p, volume: p.w * p.l * p.h }));
+                        if (document.getElementById('euroboxType').value === 'custom') {
+                            validPresets.push({ name: 'Vlastní bedna', w: boxW, l: boxL, h: boxH, volume: boxW * boxL * boxH });
+                        }
+                        validPresets.sort((a, b) => a.volume - b.volume);
+
+                        for (let p of validPresets) {
+                            const testVariants = generateVariantsForMode(p.w, p.l, p.h, itemW, itemL, itemH, lastBoxCount, activeMasterCats, isBundled, bundleSize);
+                            if (testVariants.length > 0 && testVariants[0].total >= lastBoxCount) {
+                                lastBoxName = p.name;
+                                break;
+                            }
+                        }
+                    }
+
+                    multiBoxInfo.classList.remove('hidden');
+                    multiBoxInfo.innerHTML = `
+                        <div class="font-semibold">⚠️ Do 1 bedny se vejde max ${perBoxMax} ks</div>
+                        <div>Pro ${targetCount} ks potřebujete celkem <strong class="text-white">${neededBoxes} ks</strong> přepravek:</div>
+                        <div class="pl-2">• ${neededBoxes - (lastBoxCount < perBoxMax ? 1 : 0)}× plná bedna (${perBoxMax} ks)</div>
+                        ${lastBoxCount < perBoxMax ? `<div class="pl-2">• Poslední bedna (${lastBoxName}): <strong class="text-white">${lastBoxCount} ks</strong></div>` : ''}
+                    `;
+                } else {
+                    multiBoxInfo.classList.add('hidden');
+                }
+            } else {
+                totalBoxesLabel.innerText = 'Celkem ks / bedna';
+                multiBoxInfo.classList.add('hidden');
+            }
+
+            updateLegend(variant.zones.length, isBundled, bundleSize);
+            updateScene(variant, boxW, boxL, boxH, isBundled, bundleSize);
+        }
+
+        function runOptimizationAndRender() {
+            const boxW = parseFloat(document.getElementById('boxW').value) || 30;
+            const boxL = parseFloat(document.getElementById('boxL').value) || 40;
+            const boxH = parseFloat(document.getElementById('boxH').value) || 15;
+
+            const itemW = parseFloat(document.getElementById('itemW').value);
+            const itemL = parseFloat(document.getElementById('itemL').value);
+            const itemH = parseFloat(document.getElementById('itemH').value);
+
+            const targetCount = parseInt(document.getElementById('targetCount').value) || 0;
+            const isBundled = document.getElementById('bundleCheck').checked;
+            const bundleSize = parseInt(document.getElementById('bundleSizeInput').value) || 5;
+
+            const bundleSizeContainer = document.getElementById('bundleSizeContainer');
+            if (isBundled) {
+                bundleSizeContainer.classList.remove('hidden');
+            } else {
+                bundleSizeContainer.classList.add('hidden');
+            }
+
+            const activeMasterCats = [];
+            if (document.getElementById('orient_vyska').checked) activeMasterCats.push('vyska');
+            if (document.getElementById('orient_bok').checked) activeMasterCats.push('bok');
+            if (document.getElementById('orient_lezato').checked) activeMasterCats.push('lezato');
+
+            computedNoBundleVariants = generateVariantsForMode(boxW, boxL, boxH, itemW, itemL, itemH, targetCount, activeMasterCats, false, bundleSize);
+            computedBundleVariants = generateVariantsForMode(boxW, boxL, boxH, itemW, itemL, itemH, targetCount, activeMasterCats, true, bundleSize);
+
+            selectedVariantTab = isBundled ? 'bundle' : 'nobundle';
+            const activeList = (selectedVariantTab === 'nobundle') ? computedNoBundleVariants : computedBundleVariants;
+            if (selectedVariantIndex >= activeList.length) {
+                selectedVariantIndex = 0;
+            }
+
+            updateVariantHUD();
+            displayActiveVariant();
+        }
+
+        document.getElementById('euroboxType').addEventListener('change', handleEuroboxChange);
+        document.getElementById('envSelect').addEventListener('change', updateEuroboxDropdown);
+        document.getElementById('countrySelect').addEventListener('change', updateEuroboxDropdown);
+
+        document.getElementById('boxW').addEventListener('input', runOptimizationAndRender);
+        document.getElementById('boxL').addEventListener('input', runOptimizationAndRender);
+        document.getElementById('boxH').addEventListener('input', runOptimizationAndRender);
+        document.getElementById('itemW').addEventListener('input', runOptimizationAndRender);
+        document.getElementById('itemL').addEventListener('input', runOptimizationAndRender);
+        document.getElementById('itemH').addEventListener('input', runOptimizationAndRender);
+        document.getElementById('targetCount').addEventListener('input', runOptimizationAndRender);
+        document.getElementById('bundleCheck').addEventListener('change', () => {
+            const isBundled = document.getElementById('bundleCheck').checked;
+            selectedVariantTab = isBundled ? 'bundle' : 'nobundle';
+            selectedVariantIndex = 0;
+            runOptimizationAndRender();
+        });
+        document.getElementById('bundleSizeInput').addEventListener('input', runOptimizationAndRender);
+
+        const switchIds = ['orient_vyska', 'orient_bok', 'orient_lezato'];
+        switchIds.forEach(id => {
+            document.getElementById(id).addEventListener('change', runOptimizationAndRender);
+        });
+
+        document.getElementById('resetCamBtn').addEventListener('click', () => {
+            const boxW = parseFloat(document.getElementById('boxW').value) || 30;
+            const boxL = parseFloat(document.getElementById('boxL').value) || 40;
+            const boxH = parseFloat(document.getElementById('boxH').value) || 15;
+            camera.position.set(boxW * 2, boxH * 2.5, boxL * 2);
+            controls.target.set(boxW / 2, boxH / 2, boxL / 2);
+            controls.update();
+        });
+
+        const sidebar = document.getElementById('sidebar');
+        const splitter = document.getElementById('splitter');
+        let isResizing = false;
+
+        if (splitter) {
+            splitter.addEventListener('mousedown', (e) => {
+                isResizing = true;
+                document.body.style.cursor = 'col-resize';
+                window.getSelection().removeAllRanges();
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isResizing) return;
+                const newWidth = e.clientX;
+                if (newWidth >= 320 && newWidth <= window.innerWidth - 300) {
+                    sidebar.style.width = newWidth + 'px';
+                    sidebar.style.flex = 'none';
+                    onWindowResize();
+                }
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isResizing) {
+                    isResizing = false;
+                    document.body.style.cursor = 'default';
+                    onWindowResize();
+                }
+            });
+        }
+
+        window.onload = function() {
+            initThree();
+            animate();
+            updateEuroboxDropdown();
+        };
+    </script>
+</body>
+</html>

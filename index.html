@@ -107,12 +107,12 @@
                     
                     <div id="customEuroboxContainer" class="hidden grid grid-cols-3 gap-2 pt-2">
                         <div>
-                            <label class="text-[11px] text-slate-400">Šířka (cm)</label>
-                            <input type="number" id="boxW" value="30" min="5" class="w-full bg-dark-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                        <div>
                             <label class="text-[11px] text-slate-400">Délka (cm)</label>
                             <input type="number" id="boxL" value="40" min="5" class="w-full bg-dark-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label class="text-[11px] text-slate-400">Šířka (cm)</label>
+                            <input type="number" id="boxW" value="30" min="5" class="w-full bg-dark-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         </div>
                         <div>
                             <label class="text-[11px] text-slate-400">Výška (cm)</label>
@@ -133,12 +133,12 @@
                 <div id="secItem" class="collapsible-content space-y-3 pb-4">
                     <div class="grid grid-cols-3 gap-2">
                         <div>
-                            <label class="text-[11px] text-slate-400">Šířka (cm)</label>
-                            <input type="number" id="itemW" value="3" min="1" class="w-full bg-dark-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                        <div>
                             <label class="text-[11px] text-slate-400">Délka (cm)</label>
                             <input type="number" id="itemL" value="11" min="1" class="w-full bg-dark-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label class="text-[11px] text-slate-400">Šířka (cm)</label>
+                            <input type="number" id="itemW" value="3" min="1" class="w-full bg-dark-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         </div>
                         <div>
                             <label class="text-[11px] text-slate-400">Výška (cm)</label>
@@ -148,7 +148,7 @@
 
                     <div>
                         <label class="text-[11px] text-slate-400 mb-1 block">Požadovaný počet krabiček (0 = max)</label>
-                        <input type="number" id="targetCount" value="0" min="0" class="w-full bg-dark-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <input type="number" id="targetCount" value="699" min="0" class="w-full bg-dark-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     </div>
 
                     <!-- Bundle Switch -->
@@ -693,7 +693,7 @@
 
             let html = '';
             currentPresetsList.forEach((p, idx) => {
-                const isDefault = (key === 'cool_de_at' && idx === 1) ? 'selected' : (idx === 0 ? 'selected' : '');
+                const isDefault = ((key === 'cool_de_at' || key === 'ambi_at') && idx === 2) ? 'selected' : (idx === 0 ? 'selected' : '');
                 html += `<option value="${idx}" ${isDefault}>${p.name}</option>`;
             });
             html += `<option value="custom">Vlastní rozměry...</option>`;
@@ -836,7 +836,7 @@
                     document.getElementById('boxW').value = p.w;
                     document.getElementById('boxL').value = p.l;
                     document.getElementById('boxH').value = p.h;
-                    infoDiv.innerText = `Vnitřní rozměry: Šířka ${p.w} cm, Délka ${p.l} cm, Výška ${p.h} cm`;
+                    infoDiv.innerText = `Vnitřní rozměry: Délka ${p.l} cm, Šířka ${p.w} cm, Výška ${p.h} cm`;
                 }
             }
             runOptimizationAndRender();
